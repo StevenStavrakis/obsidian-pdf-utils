@@ -31,9 +31,7 @@ Don't know how to get it on the community plugins browser, so you'll have to man
 
 ### Manual Installation
 
-1. Download the latest release from the releases page
-2. Extract the files into your vault's `.obsidian/plugins/obsidian-pdf-utils/` directory
-3. Enable the plugin in your Community Plugins settings
+Clone the project into your `.obsidian/plugins` directory and `npm install` it, probably.
 
 ## Development
 
