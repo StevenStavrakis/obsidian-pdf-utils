@@ -59,22 +59,16 @@ export class PDFProcessor {
 
         // create an array of indices to copy starting from startPage to endPage
 
-        newDoc.copyPages(doc, pageIndexes);
+        const copiedPages = await newDoc.copyPages(doc, pageIndexes);
+
+        for (const page of copiedPages) {
+            newDoc.addPage(page);
+        }
 
         // Try maximum compression settings
-        const compressedBytes = await newDoc.save({
-            useObjectStreams: true,
-            addDefaultPage: false,
-            objectsPerTick: 50,
-        });
+        const bytes = await newDoc.save();
 
-        console.log('[DEBUG] Compression results:', {
-            originalSize: (await doc.save()).byteLength,
-            newSize: compressedBytes.byteLength,
-            compressionRatio: ((await doc.save()).byteLength / compressedBytes.byteLength).toFixed(2)
-        });
-
-        return PDFDocument.load(compressedBytes);
+        return PDFDocument.load(bytes);
     }
 
 
@@ -94,7 +88,6 @@ export class PDFProcessor {
             console.log(`[DEBUG] Generating PDF bytes`);
             const pdfBytes = await doc.save({
                 useObjectStreams: true,  // Enable object streams compression
-                addDefaultPage: false    // Don't add blank pages
             });
             console.log(`[DEBUG] PDF bytes generated, size: ${pdfBytes.byteLength}`);
 
