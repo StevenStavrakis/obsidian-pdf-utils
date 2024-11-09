@@ -44,26 +44,37 @@ export class PDFProcessor {
     async extractPages(doc: PDFDocument, startPage: number, endPage: number): Promise<PDFDocument> {
         this.updateProgress(0, endPage - startPage + 1, 'Extracting pages...');
 
+        // Log original document details
+        console.log('[DEBUG] Original document details:', {
+            pageCount: doc.getPageCount(),
+            size: (await doc.save()).byteLength
+        });
+
         const pageIndexes = Array.from(
             { length: endPage - startPage + 1 },
             (_, i) => i + startPage - 1
         );
 
         const newDoc = await PDFDocument.create();
-        let processed = 0;
 
-        for (const pageIndex of pageIndexes) {
-            const [page] = await newDoc.copyPages(doc, [pageIndex]);
-            newDoc.addPage(page);
-            processed++;
-            this.updateProgress(
-                processed,
-                pageIndexes.length,
-                `Copying page ${pageIndex + 1}...`
-            );
-        }
+        // create an array of indices to copy starting from startPage to endPage
 
-        return newDoc;
+        newDoc.copyPages(doc, pageIndexes);
+
+        // Try maximum compression settings
+        const compressedBytes = await newDoc.save({
+            useObjectStreams: true,
+            addDefaultPage: false,
+            objectsPerTick: 50,
+        });
+
+        console.log('[DEBUG] Compression results:', {
+            originalSize: (await doc.save()).byteLength,
+            newSize: compressedBytes.byteLength,
+            compressionRatio: ((await doc.save()).byteLength / compressedBytes.byteLength).toFixed(2)
+        });
+
+        return PDFDocument.load(compressedBytes);
     }
 
 
@@ -81,7 +92,10 @@ export class PDFProcessor {
 
         try {
             console.log(`[DEBUG] Generating PDF bytes`);
-            const pdfBytes = await doc.save();
+            const pdfBytes = await doc.save({
+                useObjectStreams: true,  // Enable object streams compression
+                addDefaultPage: false    // Don't add blank pages
+            });
             console.log(`[DEBUG] PDF bytes generated, size: ${pdfBytes.byteLength}`);
 
             // Write to temporary file first
